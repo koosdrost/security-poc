@@ -11,12 +11,15 @@ import java.util.List;
 /**
  * POC 3 — AES-GCM + HMAC zoekindex
  *
- * POST /api/poc3                      { "vertrouwelijk": "geheim", "openbaar": "zichtbaar" }
- * GET  /api/poc3/{id}                 Enkel record
- * GET  /api/poc3/search?value=geheim  Zoeken via HMAC-index
+ * POST /v1/poc-3             { "vertrouwelijk": "geheim", "openbaar": "zichtbaar" }
+ * GET  /v1/poc-3             Lijst van alle records
+ * GET  /v1/poc-3?value=      Zoeken via HMAC-index
+ * GET  /v1/poc-3/{id}        Enkel record
+ *
+ * ADR: zoekfilter als query-parameter op de collectie.
  */
 @RestController
-@RequestMapping("/api/poc3")
+@RequestMapping("/v1/poc-3")
 public class Poc3Controller {
 
     private final Poc3Repository repo;
@@ -38,26 +41,31 @@ public class Poc3Controller {
     record Request(String vertrouwelijk, String openbaar) {}
 
     @PostMapping
-    public Poc3Entity save(@RequestBody Request req) {
+    public Poc3Entity opslaan(@RequestBody Request req) {
         Poc3Entity entity = new Poc3Entity();
         entity.setVertrouwelijk(req.vertrouwelijk());
-        // HMAC wordt berekend op plaintext en apart opgeslagen als zoekindex
         entity.setVertrouwelijkHmac(CryptoUtil.hmacBase64(req.vertrouwelijk(), hmacKey));
         entity.setOpenbaar(req.openbaar());
         return repo.save(entity);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Poc3Entity> get(@PathVariable Long id) {
+    public ResponseEntity<Poc3Entity> ophalen(@PathVariable Long id) {
         return repo.findById(id)
             .map(ResponseEntity::ok)
             .orElse(ResponseEntity.notFound().build());
     }
 
-    @GetMapping("/search")
-    public List<Poc3Entity> search(@RequestParam String value) {
-        // Bereken HMAC van de zoekterm — zoek op de index kolom
-        String hmac = CryptoUtil.hmacBase64(value, hmacKey);
-        return repo.findByVertrouwelijkHmac(hmac);
+    /**
+     * Lijst alle records, of zoek via HMAC-index als ?value= opgegeven.
+     * HMAC van de zoekterm wordt berekend en vergeleken met de opgeslagen index.
+     */
+    @GetMapping
+    public List<Poc3Entity> lijst(@RequestParam(required = false) String value) {
+        if (value != null) {
+            String hmac = CryptoUtil.hmacBase64(value, hmacKey);
+            return repo.findByVertrouwelijkHmac(hmac);
+        }
+        return repo.findAll();
     }
 }

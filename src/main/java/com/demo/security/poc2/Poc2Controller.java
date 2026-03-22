@@ -8,12 +8,15 @@ import java.util.List;
 /**
  * POC 2 — Deterministisch versleuteld (AES-SIV concept)
  *
- * POST /api/poc2                      { "vertrouwelijk": "geheim", "openbaar": "zichtbaar" }
- * GET  /api/poc2/{id}                 Enkel record
- * GET  /api/poc2/search?value=geheim  Zoeken op exacte waarde (werkt dankzij determinisme)
+ * POST /v1/poc-2             { "vertrouwelijk": "geheim", "openbaar": "zichtbaar" }
+ * GET  /v1/poc-2             Lijst van alle records
+ * GET  /v1/poc-2?value=      Filter op exacte waarde (werkt dankzij determinisme)
+ * GET  /v1/poc-2/{id}        Enkel record
+ *
+ * ADR: zoekfilter als query-parameter op de collectie (geen aparte /search sub-resource).
  */
 @RestController
-@RequestMapping("/api/poc2")
+@RequestMapping("/v1/poc-2")
 public class Poc2Controller {
 
     private final Poc2Repository repo;
@@ -25,7 +28,7 @@ public class Poc2Controller {
     record Request(String vertrouwelijk, String openbaar) {}
 
     @PostMapping
-    public Poc2Entity save(@RequestBody Request req) {
+    public Poc2Entity opslaan(@RequestBody Request req) {
         Poc2Entity entity = new Poc2Entity();
         entity.setVertrouwelijk(req.vertrouwelijk());
         entity.setOpenbaar(req.openbaar());
@@ -33,16 +36,22 @@ public class Poc2Controller {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Poc2Entity> get(@PathVariable Long id) {
+    public ResponseEntity<Poc2Entity> ophalen(@PathVariable Long id) {
         return repo.findById(id)
             .map(ResponseEntity::ok)
             .orElse(ResponseEntity.notFound().build());
     }
 
-    @GetMapping("/search")
-    public List<Poc2Entity> search(@RequestParam String value) {
-        // findByVertrouwelijk geeft de plaintext door aan de converter,
-        // die er de ciphertext van maakt — dan zoekt Hibernate op die ciphertext
-        return repo.findByVertrouwelijk(value);
+    /**
+     * Lijst alle records, of filter op exacte waarde als ?value= opgegeven.
+     * findByVertrouwelijk geeft de plaintext door aan de DeterministicConverter,
+     * die er de ciphertext van maakt — Hibernate zoekt op die ciphertext.
+     */
+    @GetMapping
+    public List<Poc2Entity> lijst(@RequestParam(required = false) String value) {
+        if (value != null) {
+            return repo.findByVertrouwelijk(value);
+        }
+        return repo.findAll();
     }
 }

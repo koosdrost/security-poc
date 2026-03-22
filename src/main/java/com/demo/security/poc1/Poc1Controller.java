@@ -8,12 +8,17 @@ import java.util.List;
 /**
  * POC 1 — AES-GCM AttributeConverter
  *
- * POST /api/poc1          { "vertrouwelijk": "geheim", "openbaar": "zichtbaar" }
- * GET  /api/poc1          Lijst van alle records (ontsleuteld)
- * GET  /api/poc1/{id}     Enkel record (ontsleuteld)
+ * POST /v1/poc-1          { "vertrouwelijk": "geheim", "openbaar": "zichtbaar" }
+ * GET  /v1/poc-1          Lijst van alle records (ontsleuteld)
+ * GET  /v1/poc-1/{id}     Enkel record (ontsleuteld)
+ *
+ * URI-structuur conform NL GOV API Design Rules v2.1.0:
+ *  - Versie in pad (/v1/)
+ *  - Kebab-case padsegmenten (poc-1)
+ *  - Meervoud voor collecties via GET op basis-pad
  */
 @RestController
-@RequestMapping("/api/poc1")
+@RequestMapping("/v1/poc-1")
 public class Poc1Controller {
 
     private final Poc1Repository repo;
@@ -25,7 +30,7 @@ public class Poc1Controller {
     record Request(String vertrouwelijk, String openbaar) {}
 
     @PostMapping
-    public Poc1Entity save(@RequestBody Request req) {
+    public Poc1Entity opslaan(@RequestBody Request req) {
         Poc1Entity entity = new Poc1Entity();
         entity.setVertrouwelijk(req.vertrouwelijk());
         entity.setOpenbaar(req.openbaar());
@@ -33,14 +38,14 @@ public class Poc1Controller {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Poc1Entity> get(@PathVariable Long id) {
+    public ResponseEntity<Poc1Entity> ophalen(@PathVariable Long id) {
         return repo.findById(id)
             .map(ResponseEntity::ok)
             .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping
-    public List<Poc1Entity> list() {
+    public List<Poc1Entity> lijst() {
         return repo.findAll();
     }
 }

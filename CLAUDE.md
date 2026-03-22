@@ -77,42 +77,69 @@ Wat moet je kunnen doen/zien na de POC:
 
 ---
 
+## NL GOV Standaarden (toegepast)
+
+### API Design Rules (ADR v2.1.0)
+- Major versie in URI-pad: `/v1/`
+- Kebab-case padsegmenten: `poc-1`, `kek-rotatie`, `dek-rotatie`
+- Operaties als sub-resources met `_` prefix: `_initialiseer`, `_reconstrueer`
+- Zoekfilters als query-parameter op collectie: `GET /v1/poc-2?value=`
+- `API-Version` response header op alle `/v1/` responses
+- Verplichte security headers: `Cache-Control`, `CSP`, `HSTS`, `X-Content-Type-Options`, `X-Frame-Options`
+- `application/problem+json` (RFC 9457) voor alle foutresponses
+
+### OAuth 2.0 NL Profiel (v1.1.0)
+- Authorization Server op `http://localhost:8080`
+- `poc-web-client`: `authorization_code` + PKCE (verplicht voor public clients)
+- `poc-service-client`: `client_credentials` (machine-to-machine)
+- JWT Bearer tokens in `Authorization` header
+- Demo login: `gebruiker` / `wachtwoord`
+- Token ophalen (client_credentials):
+  ```
+  POST http://localhost:8080/oauth2/token
+  Authorization: Basic cG9jLXNlcnZpY2UtY2xpZW50OnBvYy1zZXJ2aWNlLWdlaGVpbQ==
+  Content-Type: application/x-www-form-urlencoded
+  grant_type=client_credentials&scope=poc.lezen
+  ```
+
+---
+
 ## Actieve POCs
 
 ### POC 1 — AES-GCM via AttributeConverter
 - **Concept:** 3.1 — Niet-deterministisch versleuteld, geen zoeken mogelijk
 - **Status:** done
-- **Endpoints:** `POST /api/poc1`, `GET /api/poc1/{id}`, `GET /api/poc1`
+- **Endpoints:** `POST /v1/poc-1`, `GET /v1/poc-1/{id}`, `GET /v1/poc-1`
 - **Bestanden:** `poc1/AesGcmConverter.java`, `poc1/Poc1Entity.java`, `poc1/Poc1Repository.java`, `poc1/Poc1Controller.java`
 
 ### POC 2 — Deterministisch (AES-SIV concept) via AttributeConverter
 - **Concept:** 3.2 — IV afgeleid van HMAC(sleutel, plaintext) zodat exact zoeken mogelijk is
 - **Status:** done
-- **Endpoints:** `POST /api/poc2`, `GET /api/poc2/{id}`, `GET /api/poc2/search?value=`
+- **Endpoints:** `POST /v1/poc-2`, `GET /v1/poc-2/{id}`, `GET /v1/poc-2?value=`
 - **Bestanden:** `poc2/DeterministicConverter.java`, `poc2/Poc2Entity.java`, `poc2/Poc2Repository.java`, `poc2/Poc2Controller.java`
 
 ### POC 3 — AES-GCM + HMAC zoekindex
 - **Concept:** 3.3 — AES-GCM encryptie + aparte HMAC-kolom als zoekindex
 - **Status:** done
-- **Endpoints:** `POST /api/poc3`, `GET /api/poc3/{id}`, `GET /api/poc3/search?value=`
+- **Endpoints:** `POST /v1/poc-3`, `GET /v1/poc-3/{id}`, `GET /v1/poc-3?value=`
 - **Bestanden:** `poc3/Poc3Entity.java`, `poc3/Poc3Repository.java`, `poc3/Poc3Controller.java`
 
 ### POC 4 — @ColumnTransformer + H2 SQL-functies
 - **Concept:** 3.4 — Encryptie op database-niveau via custom SQL-functies (simuleert pgcrypto)
 - **Status:** done
-- **Endpoints:** `POST /api/poc4`, `GET /api/poc4/{id}`, `GET /api/poc4`
+- **Endpoints:** `POST /v1/poc-4`, `GET /v1/poc-4/{id}`, `GET /v1/poc-4`
 - **Bestanden:** `poc4/H2EncryptFunctions.java`, `poc4/Poc4Entity.java`, `poc4/Poc4Repository.java`, `poc4/Poc4Controller.java`, `config/H2FunctionRegistrar.java`
 - **Productie-equivalent:** vervang H2-functies door PostgreSQL `encrypt_string`/`decrypt_string` (pgcrypto)
 
 ### Envelope Encryption (DEK/KEK)
 - **Concept:** 2.1 t/m 2.4 — DEKs per context, versleuteld met KEK, DEK-rotatie met REPEATABLE READ
 - **Status:** done
-- **Endpoints:** `POST /api/envelope/dek/init?context=`, `POST /api/envelope`, `GET /api/envelope/{id}`, `POST /api/envelope/{context}/rotate-dek`
+- **Endpoints:** `POST /v1/envelope/dek/_initialiseer?context=`, `POST /v1/envelope`, `GET /v1/envelope/{id}`, `POST /v1/envelope/{context}/dek-rotatie`
 - **Bestanden:** `envelope/DataEncryptionKey.java`, `envelope/DekRepository.java`, `envelope/EnvelopeEntity.java`, `envelope/EnvelopeRepository.java`, `envelope/KeyManagementService.java`, `envelope/EnvelopeController.java`
 
 ### KEK-rotatie — Shamir's Secret Sharing
 - **Concept:** 5.1 t/m 5.5 — KEK splitsen in 5 shares (drempel 3) via GF(256) SSS
 - **Status:** done
-- **Endpoints:** `POST /api/rotation/init`, `POST /api/rotation/reconstruct`
+- **Endpoints:** `POST /v1/kek-rotatie/_initialiseer`, `POST /v1/kek-rotatie/_reconstrueer`
 - **Bestanden:** `rotation/ShamirSecretSharing.java`, `rotation/RotationController.java`
 - **Let op:** POC retourneert alle shares in één response — in productie distribueert de ceremoniemeester shares out-of-band (6.4)

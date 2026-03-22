@@ -14,14 +14,19 @@ import java.util.Map;
  * KEK-rotatie POC via Shamir's Secret Sharing (5 shares, drempel 3).
  *
  * WAARSCHUWING: Dit is een POC. In productie worden shares nooit via HTTP uitgeleverd
- * en verdeeld de ceremoniemeester ze out-of-band naar sleutelbeheerders.
+ * en verdeelt de ceremoniemeester ze out-of-band naar sleutelbeheerders.
  * Referentie: CLAUDE.md 5.1 t/m 5.5, 6.4
  *
- * POST /api/rotation/init         Splits huidige KEK in 5 shares
- * POST /api/rotation/reconstruct  { "shares": ["base64...", ...] }  (minimaal 3)
+ * POST /v1/kek-rotatie/_initialiseer       Splits huidige KEK in 5 shares
+ * POST /v1/kek-rotatie/_reconstrueer       { "shares": ["base64...", ...] } (minimaal 3)
+ *
+ * URI-structuur conform NL GOV API Design Rules v2.1.0:
+ *  - Kebab-case padsegmenten (kek-rotatie)
+ *  - Operaties als sub-resources met _ prefix (_initialiseer, _reconstrueer)
+ *  - Foutresponses via ApiExceptionHandler (problem+json, RFC 9457)
  */
 @RestController
-@RequestMapping("/api/rotation")
+@RequestMapping("/v1/kek-rotatie")
 public class RotationController {
 
     private static final int N = 5; // totaal aantal shares (technisch sleutelbeheerders)
@@ -42,11 +47,10 @@ public class RotationController {
      * In productie: elk share wordt apart aangeboden aan een sleutelbeheerder.
      * Referentie: CLAUDE.md 5.1, 5.2
      */
-    @PostMapping("/init")
-    public Map<String, Object> initRotation() {
+    @PostMapping("/_initialiseer")
+    public Map<String, Object> initialiseerRotatie() {
         byte[][] rawShares = ShamirSecretSharing.split(kek, N, K);
-
-        List<String> encodedShares = Arrays.stream(rawShares)
+        List<String> gecodeerdeShares = Arrays.stream(rawShares)
             .map(share -> Base64.getEncoder().encodeToString(share))
             .toList();
 
@@ -55,24 +59,25 @@ public class RotationController {
             "drempelwaarde", K,
             "uitleg",        "Verdeel de shares over " + N + " sleutelbeheerders. " +
                              "Minimaal " + K + " shares zijn nodig voor reconstructie.",
-            "shares",        encodedShares
+            "shares",        gecodeerdeShares
         );
     }
 
     /**
      * Stap 2: Reconstrueer de KEK uit minstens K shares.
-     * Demonstreert dat de oorspronkelijke KEK correct wordt hersteld.
+     * Gooit IllegalArgumentException bij te weinig shares (→ 400 problem+json via ApiExceptionHandler).
      * Referentie: CLAUDE.md 5.3
      */
-    @PostMapping("/reconstruct")
-    public Map<String, Object> reconstruct(@RequestBody Map<String, List<String>> body) {
-        List<String> encodedShares = body.get("shares");
-        if (encodedShares == null || encodedShares.size() < K) {
-            return Map.of("fout", "Minimaal " + K + " shares vereist, ontvangen: " +
-                (encodedShares == null ? 0 : encodedShares.size()));
+    @PostMapping("/_reconstrueer")
+    public Map<String, Object> reconstrueer(@RequestBody Map<String, List<String>> body) {
+        List<String> gecodeerdeShares = body.get("shares");
+        if (gecodeerdeShares == null || gecodeerdeShares.size() < K) {
+            throw new IllegalArgumentException(
+                "Minimaal " + K + " shares vereist, ontvangen: " +
+                (gecodeerdeShares == null ? 0 : gecodeerdeShares.size()));
         }
 
-        byte[][] shares = encodedShares.stream()
+        byte[][] shares = gecodeerdeShares.stream()
             .map(s -> Base64.getDecoder().decode(s))
             .toArray(byte[][]::new);
 
@@ -80,11 +85,11 @@ public class RotationController {
         boolean correct = Arrays.equals(gereconstrueerdeKek, kek);
 
         return Map.of(
-            "aantalSharesIngediend",   encodedShares.size(),
-            "reconstructieGeslaagd",   correct,
-            "gereconstrueerdeKekHex",  bytesToHex(gereconstrueerdeKek),
-            "origineleKekHex",         bytesToHex(kek),
-            "uitleg",                  correct
+            "aantalSharesIngediend",  gecodeerdeShares.size(),
+            "reconstructieGeslaagd",  correct,
+            "gereconstrueerdeKekHex", bytesToHex(gereconstrueerdeKek),
+            "origineleKekHex",        bytesToHex(kek),
+            "uitleg",                 correct
                 ? "KEK succesvol gereconstrueerd. In productie worden hiermee de DEKs her-versleuteld."
                 : "Reconstructie mislukt — verkeerde of beschadigde shares."
         );
