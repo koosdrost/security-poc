@@ -1,5 +1,7 @@
 package com.demo.security.envelope;
 
+import com.demo.security.audit.AuditService;
+import com.demo.security.audit.AuditService.Event;
 import com.demo.security.crypto.CryptoUtil;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,17 +31,19 @@ import java.util.List;
 @Service
 public class KeyManagementService {
 
-    private final DekRepository dekRepo;
+    private final DekRepository      dekRepo;
     private final EnvelopeRepository envelopeRepo;
+    private final AuditService       audit;
 
     @Value("${encryption.kek}")
     private String kekPassphrase;
 
     private byte[] kek;
 
-    public KeyManagementService(DekRepository dekRepo, EnvelopeRepository envelopeRepo) {
+    public KeyManagementService(DekRepository dekRepo, EnvelopeRepository envelopeRepo, AuditService audit) {
         this.dekRepo       = dekRepo;
         this.envelopeRepo  = envelopeRepo;
+        this.audit         = audit;
     }
 
     @PostConstruct
@@ -71,16 +75,26 @@ public class KeyManagementService {
     /** Geeft de byte[] DEK terug, ontsleuteld met de KEK. */
     public byte[] getDek(String context, int version) {
         DataEncryptionKey dek = dekRepo.findByContextAndVersion(context, version)
-            .orElseThrow(() -> new IllegalArgumentException(
-                "Geen DEK gevonden voor context=" + context + " version=" + version));
+            .orElseThrow(() -> {
+                audit.failure(Event.DEK_ACCESS, "dek",
+                    "DekNietGevonden", "context=" + context + " versie=" + version);
+                return new IllegalArgumentException(
+                    "Geen DEK gevonden voor context=" + context + " version=" + version);
+            });
+        audit.success(Event.DEK_ACCESS, "dek", "context=" + context + " versie=" + version);
         return CryptoUtil.unwrapKey(dek.getEncryptedKey(), kek);
     }
 
     public byte[] getActiveDek(String context) {
         DataEncryptionKey dek = dekRepo.findByContextAndActiveTrue(context)
-            .orElseThrow(() -> new IllegalStateException(
-                "Geen actieve DEK voor context: " + context +
-                " — roep eerst POST /api/envelope/dek/init?context=" + context + " aan"));
+            .orElseThrow(() -> {
+                audit.failure(Event.DEK_ACCESS, "dek",
+                    "GeenActieveDek", "context=" + context);
+                return new IllegalStateException(
+                    "Geen actieve DEK voor context: " + context +
+                    " — roep eerst POST /api/envelope/dek/init?context=" + context + " aan");
+            });
+        audit.success(Event.DEK_ACCESS, "dek", "context=" + context + " versie=" + dek.getVersion() + " actief=true");
         return CryptoUtil.unwrapKey(dek.getEncryptedKey(), kek);
     }
 

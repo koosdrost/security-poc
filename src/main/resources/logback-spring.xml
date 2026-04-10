@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!-- Standaard console appender voor applicatielogs -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %-5level %-40.40logger{39} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!--
+        Audit file appender — gescheiden van applicatielogs.
+        Bewaart 90 dagen conform minimale retentie voor AVG/GDPR audittrails.
+        In productie: vervang door een gecentraliseerde SIEM-sink (syslog, Elastic, etc.).
+    -->
+    <appender name="AUDIT_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/audit.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/audit.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>90</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!--
+        AUDIT logger — additivity=false zodat auditregels niet in de applicatielog belanden.
+        Schrijft naar zowel het auditbestand als de console (voor lokale dev-zichtbaarheid).
+    -->
+    <logger name="AUDIT" level="INFO" additivity="false">
+        <appender-ref ref="AUDIT_FILE"/>
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+
+</configuration>

@@ -1,5 +1,7 @@
 package com.demo.security.poc3;
 
+import com.demo.security.audit.AuditService;
+import com.demo.security.audit.AuditService.Event;
 import com.demo.security.crypto.CryptoUtil;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,14 +25,16 @@ import java.util.List;
 public class Poc3Controller {
 
     private final Poc3Repository repo;
+    private final AuditService audit;
 
     @Value("${encryption.hmac-secret}")
     private String hmacSecret;
 
     private byte[] hmacKey;
 
-    public Poc3Controller(Poc3Repository repo) {
+    public Poc3Controller(Poc3Repository repo, AuditService audit) {
         this.repo = repo;
+        this.audit = audit;
     }
 
     @PostConstruct
@@ -46,26 +50,39 @@ public class Poc3Controller {
         entity.setVertrouwelijk(req.vertrouwelijk());
         entity.setVertrouwelijkHmac(CryptoUtil.hmacBase64(req.vertrouwelijk(), hmacKey));
         entity.setOpenbaar(req.openbaar());
-        return repo.save(entity);
+        Poc3Entity saved = repo.save(entity);
+        audit.success(Event.DATA_WRITE, "poc-3/" + saved.getId(), "openbaar=" + req.openbaar());
+        return saved;
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<Poc3Entity> ophalen(@PathVariable Long id) {
         return repo.findById(id)
-            .map(ResponseEntity::ok)
-            .orElse(ResponseEntity.notFound().build());
+            .map(entity -> {
+                audit.success(Event.DATA_READ, "poc-3/" + id, "openbaar=" + entity.getOpenbaar());
+                return ResponseEntity.ok(entity);
+            })
+            .orElseGet(() -> {
+                audit.failure(Event.DATA_READ, "poc-3/" + id, "NotFound", "record niet gevonden");
+                return ResponseEntity.notFound().build();
+            });
     }
 
     /**
      * Lijst alle records, of zoek via HMAC-index als ?value= opgegeven.
      * HMAC van de zoekterm wordt berekend en vergeleken met de opgeslagen index.
+     * Let op: de zoekterm zelf wordt NIET gelogd (zou plaintext data bevatten).
      */
     @GetMapping
     public List<Poc3Entity> lijst(@RequestParam(required = false) String value) {
         if (value != null) {
             String hmac = CryptoUtil.hmacBase64(value, hmacKey);
-            return repo.findByVertrouwelijkHmac(hmac);
+            List<Poc3Entity> result = repo.findByVertrouwelijkHmac(hmac);
+            audit.success(Event.DATA_SEARCH, "poc-3", "aantalResultaten=" + result.size());
+            return result;
         }
-        return repo.findAll();
+        List<Poc3Entity> result = repo.findAll();
+        audit.success(Event.DATA_READ, "poc-3/lijst", "aantalRecords=" + result.size());
+        return result;
     }
 }

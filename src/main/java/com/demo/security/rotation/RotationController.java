@@ -1,5 +1,7 @@
 package com.demo.security.rotation;
 
+import com.demo.security.audit.AuditService;
+import com.demo.security.audit.AuditService.Event;
 import com.demo.security.crypto.CryptoUtil;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,6 +39,12 @@ public class RotationController {
 
     private byte[] kek;
 
+    private final AuditService audit;
+
+    public RotationController(AuditService audit) {
+        this.audit = audit;
+    }
+
     @PostConstruct
     public void init() {
         this.kek = CryptoUtil.deriveKey(kekPassphrase);
@@ -53,6 +61,9 @@ public class RotationController {
         List<String> gecodeerdeShares = Arrays.stream(rawShares)
             .map(share -> Base64.getEncoder().encodeToString(share))
             .toList();
+
+        audit.success(Event.KEK_SPLIT, "kek-rotatie/_initialiseer",
+            "aantalShares=" + N + " drempelwaarde=" + K);
 
         return Map.of(
             "aantalShares",  N,
@@ -72,9 +83,11 @@ public class RotationController {
     public Map<String, Object> reconstrueer(@RequestBody Map<String, List<String>> body) {
         List<String> gecodeerdeShares = body.get("shares");
         if (gecodeerdeShares == null || gecodeerdeShares.size() < K) {
+            int ontvangen = gecodeerdeShares == null ? 0 : gecodeerdeShares.size();
+            audit.failure(Event.KEK_RECONSTRUCT, "kek-rotatie/_reconstrueer",
+                "TeWeinigShares", "ontvangen=" + ontvangen + " vereist=" + K);
             throw new IllegalArgumentException(
-                "Minimaal " + K + " shares vereist, ontvangen: " +
-                (gecodeerdeShares == null ? 0 : gecodeerdeShares.size()));
+                "Minimaal " + K + " shares vereist, ontvangen: " + ontvangen);
         }
 
         byte[][] shares = gecodeerdeShares.stream()
@@ -83,6 +96,14 @@ public class RotationController {
 
         byte[] gereconstrueerdeKek = ShamirSecretSharing.reconstruct(shares);
         boolean correct = Arrays.equals(gereconstrueerdeKek, kek);
+
+        if (correct) {
+            audit.success(Event.KEK_RECONSTRUCT, "kek-rotatie/_reconstrueer",
+                "aantalSharesIngediend=" + gecodeerdeShares.size());
+        } else {
+            audit.failure(Event.KEK_RECONSTRUCT, "kek-rotatie/_reconstrueer",
+                "ReconstructieMislukt", "aantalSharesIngediend=" + gecodeerdeShares.size());
+        }
 
         return Map.of(
             "aantalSharesIngediend",  gecodeerdeShares.size(),

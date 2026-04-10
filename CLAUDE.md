@@ -3,7 +3,7 @@
 Spring Boot 4.x demo project for POC-ing security implementations.
 
 ## Stack
-- Java 21 (runtime WSL2), project targett Java 25
+- Java 25
 - Spring Boot 4.0.x
 - Spring Security
 - Spring Data JPA
