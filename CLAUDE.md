@@ -3,7 +3,7 @@
 Spring Boot 4.x demo project for POC-ing security implementations.
 
 ## Stack
-- Java 25
+- Java 21 (runtime WSL2), project targett Java 25
 - Spring Boot 4.0.x
 - Spring Security
 - Spring Data JPA
@@ -79,28 +79,58 @@ Wat moet je kunnen doen/zien na de POC:
 
 ## NL GOV Standaarden (toegepast)
 
-### API Design Rules (ADR v2.1.0)
-- Major versie in URI-pad: `/v1/`
-- Kebab-case padsegmenten: `poc-1`, `kek-rotatie`, `dek-rotatie`
-- Operaties als sub-resources met `_` prefix: `_initialiseer`, `_reconstrueer`
-- Zoekfilters als query-parameter op collectie: `GET /v1/poc-2?value=`
-- `API-Version` response header op alle `/v1/` responses
-- Verplichte security headers: `Cache-Control`, `CSP`, `HSTS`, `X-Content-Type-Options`, `X-Frame-Options`
-- `application/problem+json` (RFC 9457) voor alle foutresponses
+> Toegepast via de `logius-standaarden@overheid-plugins` plugin voor Claude Code.
+> Plugin skills gebruikt: `standaarden:ls-iam`, `standaarden:ls-api`
 
-### OAuth 2.0 NL Profiel (v1.1.0)
-- Authorization Server op `http://localhost:8080`
-- `poc-web-client`: `authorization_code` + PKCE (verplicht voor public clients)
-- `poc-service-client`: `client_credentials` (machine-to-machine)
-- JWT Bearer tokens in `Authorization` header
+### standaarden:ls-api — API Design Rules (ADR v2.1.0)
+
+**Plugin:** `logius-standaarden@overheid-plugins` → skill `standaarden:ls-api`
+**Bron:** [gitdocumentatie.logius.nl/publicatie/api/adr/2.1.0](https://gitdocumentatie.logius.nl/publicatie/api/adr/2.1.0/)
+**Status:** Verplicht (pas-toe-of-leg-uit, Forum Standaardisatie)
+
+| Regel | Toepassing in dit project | Bestand |
+|-------|--------------------------|---------|
+| Major versie in URI-pad | `/api/...` → `/v1/...` | alle controllers |
+| Kebab-case padsegmenten | `poc1` → `poc-1`, `rotate-dek` → `dek-rotatie` | alle controllers |
+| Operaties als `_` sub-resources | `_initialiseer`, `_reconstrueer` | `EnvelopeController`, `RotationController` |
+| Zoekfilter als query-param op collectie | `GET /v1/poc-2?value=` (was `/search`) | `Poc2Controller`, `Poc3Controller` |
+| `API-Version` response header | Toegevoegd op alle `/v1/` responses | `SecurityHeadersFilter` |
+| Verplichte security headers (sectie 3.8) | `Cache-Control`, `CSP`, `HSTS`, `X-Content-Type-Options`, `X-Frame-Options` | `SecurityHeadersFilter` |
+| `application/problem+json` (RFC 9457) | Globale foutafhandeling, `spring.mvc.problemdetails.enabled=true` | `ApiExceptionHandler`, `application.properties` |
+
+### standaarden:ls-iam — OAuth 2.0 NL Profiel (v1.1.0) + OIDC NL GOV (v1.0.1)
+
+**Plugin:** `logius-standaarden@overheid-plugins` → skill `standaarden:ls-iam`
+**Bron:** [gitdocumentatie.logius.nl/publicatie/api/oauth](https://gitdocumentatie.logius.nl/publicatie/api/oauth/)
+**Status:** Verplicht (pas-toe-of-leg-uit, Forum Standaardisatie)
+
+| Regel | Toepassing in dit project | Bestand |
+|-------|--------------------------|---------|
+| Authorization Server met JWT access tokens (RFC 9068) | Spring Authorization Server op `http://localhost:8080` | `AuthorizationServerConfig` |
+| `authorization_code` + PKCE verplicht voor public clients | `poc-web-client` met `requireProofKey(true)` | `AuthorizationServerConfig` |
+| `client_credentials` voor machine-to-machine | `poc-service-client` | `AuthorizationServerConfig` |
+| Access tokens via `Authorization: Bearer` header | Resource server JWT filter op alle `/v1/**` | `SecurityConfig` |
+| Implicit grant verboden | Niet geconfigureerd | `AuthorizationServerConfig` |
+| PKCE met `code_challenge_method=S256` | Standaard via Spring Authorization Server | `AuthorizationServerConfig` |
+| Betrouwbaarheidsniveaus (eIDAS) | In-memory gebruiker als placeholder; in productie DigiD/eHerkenning | `AuthorizationServerConfig` |
+
+**Demo gebruik:**
+```
+# Token ophalen (client_credentials):
+POST http://localhost:8080/oauth2/token
+Authorization: Basic cG9jLXNlcnZpY2UtY2xpZW50OnBvYy1zZXJ2aWNlLWdlaGVpbQ==
+Content-Type: application/x-www-form-urlencoded
+grant_type=client_credentials&scope=poc.lezen
+
+# API aanroepen:
+GET http://localhost:8080/v1/poc-1
+Authorization: Bearer <access_token>
+```
+
+**Productie-afwijkingen (POC only):**
+- `client_secret_basic` gebruikt i.p.v. `private_key_jwt` (verplicht per NL GOV OAuth)
+- In-memory gebruiker i.p.v. DigiD/eHerkenning (verplicht per OIDC NL GOV)
 - Demo login: `gebruiker` / `wachtwoord`
-- Token ophalen (client_credentials):
-  ```
-  POST http://localhost:8080/oauth2/token
-  Authorization: Basic cG9jLXNlcnZpY2UtY2xpZW50OnBvYy1zZXJ2aWNlLWdlaGVpbQ==
-  Content-Type: application/x-www-form-urlencoded
-  grant_type=client_credentials&scope=poc.lezen
-  ```
 
 ---
 
