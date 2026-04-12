@@ -178,6 +178,16 @@ Authorization: Bearer <access_token>
 - **Bestanden:** `poc5/Poc5Entity.java`, `poc5/Poc5Repository.java`, `poc5/Poc5Controller.java`
 - **Hergebruikt:** `DeterministicConverter` (poc2), `AesGcmConverter` (poc1), `H2EncryptFunctions` + `H2FunctionRegistrar` (poc4)
 
+### POC 6 — Dubbele encryptie (app + DB) met HMAC zoekindex
+- **Concept:** 3.1 + 3.3 + 3.4 — AES-GCM (app-laag) + @ColumnTransformer (DB-laag) + HMAC-index per veld
+- **Status:** done
+- **Datastroom write:** `plaintext → AES-GCM (Java) → ENCRYPT_STRING (H2) → DB`
+- **Datastroom read:** `DB → DECRYPT_STRING (H2) → AES-GCM decrypt (Java) → plaintext`
+- **Zoeken:** HMAC van plaintext opgeslagen als aparte `_hmac` kolom; zoekterm wordt on-the-fly gehasht
+- **Endpoints:** `POST /v1/poc-6`, `GET /v1/poc-6`, `GET /v1/poc-6?naam=`, `GET /v1/poc-6?notitie=`, `GET /v1/poc-6/{id}`
+- **Bestanden:** `poc6/Poc6Entity.java`, `poc6/Poc6Repository.java`, `poc6/Poc6Controller.java`
+- **Hergebruikt:** `AesGcmConverter` (poc1), `H2EncryptFunctions` + `H2FunctionRegistrar` (poc4)
+
 ### KEK-rotatie — Shamir's Secret Sharing
 - **Concept:** 5.1 t/m 5.5 — KEK splitsen in 5 shares (drempel 3) via GF(256) SSS
 - **Status:** done
