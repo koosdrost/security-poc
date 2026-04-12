@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Edit(/home/koosdrost/GIT/security/**)",
+      "Write(/home/koosdrost/GIT/security/**)"
+    ]
+  }
+}

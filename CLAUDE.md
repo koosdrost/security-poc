@@ -167,6 +167,17 @@ Authorization: Bearer <access_token>
 - **Endpoints:** `POST /v1/envelope/dek/_initialiseer?context=`, `POST /v1/envelope`, `GET /v1/envelope/{id}`, `POST /v1/envelope/{context}/dek-rotatie`
 - **Bestanden:** `envelope/DataEncryptionKey.java`, `envelope/DekRepository.java`, `envelope/EnvelopeEntity.java`, `envelope/EnvelopeRepository.java`, `envelope/KeyManagementService.java`, `envelope/EnvelopeController.java`
 
+### POC 5 — Gecombineerde encryptie-strategieën
+- **Concept:** 3.2 + 3.3 + 3.4 — Drie encryptie-aanpakken op één entity, afwegingen direct vergelijkbaar
+- **Status:** done
+- **Velden:**
+  - `naam` — deterministisch AES-CBC (POC 2 stijl), exact zoeken via `?naam=`
+  - `notitie` — AES-GCM + HMAC-index (POC 3 stijl), zoeken via `?notitie=`
+  - `referentie` — @ColumnTransformer H2 SQL-functies (POC 4 stijl), geen zoekondersteuning
+- **Endpoints:** `POST /v1/poc-5`, `GET /v1/poc-5`, `GET /v1/poc-5?naam=`, `GET /v1/poc-5?notitie=`, `GET /v1/poc-5/{id}`
+- **Bestanden:** `poc5/Poc5Entity.java`, `poc5/Poc5Repository.java`, `poc5/Poc5Controller.java`
+- **Hergebruikt:** `DeterministicConverter` (poc2), `AesGcmConverter` (poc1), `H2EncryptFunctions` + `H2FunctionRegistrar` (poc4)
+
 ### KEK-rotatie — Shamir's Secret Sharing
 - **Concept:** 5.1 t/m 5.5 — KEK splitsen in 5 shares (drempel 3) via GF(256) SSS
 - **Status:** done
