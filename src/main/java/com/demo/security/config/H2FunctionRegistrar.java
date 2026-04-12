@@ -1,20 +1,21 @@
 package com.demo.security.config;
 
-import com.demo.security.crypto.CryptoUtil;
 import com.demo.security.poc4.H2EncryptFunctions;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 /**
- * Registreert H2 custom SQL functies (ENCRYPT_STRING / DECRYPT_STRING) bij opstarten.
- * Loopt na context refresh maar vóór HTTP verkeer — timing is gegarandeerd veilig.
+ * Registreert H2 custom SQL functies (ENCRYPT_STRING / DECRYPT_STRING) en initialiseert de KEK.
+ *
+ * Gebruikt @PostConstruct zodat zowel de kek als de SQL-aliassen beschikbaar zijn
+ * vóórdat Hibernate zijn eerste statement voorbereidt en vóórdat CommandLineRunner-beans draaien.
  *
  * Referentie: CLAUDE.md 4.2
  */
 @Component
-public class H2FunctionRegistrar implements CommandLineRunner {
+public class H2FunctionRegistrar {
 
     private final JdbcTemplate jdbcTemplate;
 
@@ -25,10 +26,10 @@ public class H2FunctionRegistrar implements CommandLineRunner {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    @Override
-    public void run(String... args) {
-        // Stel de sleutel in op de static utility class zodat H2-functies er gebruik van kunnen maken
-        H2EncryptFunctions.kek = CryptoUtil.deriveKey(kekPassphrase);
+    @PostConstruct
+    public void initialiseer() {
+        // Passphrase via sysprop beschikbaar stellen voor H2's classloader-instantie van H2EncryptFunctions
+        System.setProperty(H2EncryptFunctions.SYSPROP, kekPassphrase);
 
         // Registreer de H2 aliases (idempotent via IF NOT EXISTS)
         jdbcTemplate.execute(

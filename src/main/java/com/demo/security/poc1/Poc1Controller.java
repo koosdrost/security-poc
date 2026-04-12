@@ -5,7 +5,10 @@ import com.demo.security.audit.AuditService.Event;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
 
 /**
  * POC 1 — AES-GCM AttributeConverter
@@ -61,5 +64,28 @@ public class Poc1Controller {
         List<Poc1Entity> result = repo.findAll();
         audit.success(Event.DATA_READ, "poc-1/lijst", "aantalRecords=" + result.size());
         return result;
+    }
+
+    /** GET /v1/poc-1/_perf?operatie=lijst|enkel&q= */
+    @GetMapping("/_perf")
+    public Map<String, Object> perf(@RequestParam String operatie,
+                                    @RequestParam(required = false, defaultValue = "1") String q) {
+        return gemeten(operatie, switch (operatie) {
+            case "lijst" -> () -> repo.findAll().size();
+            case "enkel" -> () -> repo.findById(Long.parseLong(q)).isPresent() ? 1 : 0;
+            default -> throw new IllegalArgumentException("Onbekende operatie: " + operatie);
+        });
+    }
+
+    private Map<String, Object> gemeten(String operatie, Supplier<Integer> actie) {
+        long start  = System.currentTimeMillis();
+        int  aantal = actie.get();
+        Map<String, Object> r = new LinkedHashMap<>();
+        r.put("poc",             "poc-1 (AES-GCM AttributeConverter)");
+        r.put("operatie",        operatie);
+        r.put("aantalResultaten", aantal);
+        r.put("totaalRecords",   repo.count());
+        r.put("duurMs",          System.currentTimeMillis() - start);
+        return r;
     }
 }

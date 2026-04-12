@@ -8,6 +8,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.function.Supplier;
+
 import java.util.List;
 
 /**
@@ -87,6 +91,31 @@ public class Poc5Controller {
      * Beide zoektermen worden NIET gelogd (plaintext gevoelige data).
      * Combineren van ?naam= en ?notitie= geeft voorrang aan ?naam=.
      */
+    /** GET /v1/poc-5/_perf?operatie=lijst|zoek-naam|zoek-notitie|enkel&q= */
+    @GetMapping("/_perf")
+    public Map<String, Object> perf(@RequestParam String operatie,
+                                    @RequestParam(required = false, defaultValue = "1") String q) {
+        return gemeten(operatie, switch (operatie) {
+            case "lijst"        -> () -> repo.findAll().size();
+            case "zoek-naam"    -> () -> repo.findByNaam(q).size();
+            case "zoek-notitie" -> () -> repo.findByNotitieHmac(CryptoUtil.hmacBase64(q, hmacKey)).size();
+            case "enkel"        -> () -> repo.findById(Long.parseLong(q)).isPresent() ? 1 : 0;
+            default -> throw new IllegalArgumentException("Onbekende operatie: " + operatie);
+        });
+    }
+
+    private Map<String, Object> gemeten(String operatie, Supplier<Integer> actie) {
+        long start  = System.currentTimeMillis();
+        int  aantal = actie.get();
+        Map<String, Object> r = new LinkedHashMap<>();
+        r.put("poc",             "poc-5 (deterministisch + AES-GCM+HMAC + H2-SQL)");
+        r.put("operatie",        operatie);
+        r.put("aantalResultaten", aantal);
+        r.put("totaalRecords",   repo.count());
+        r.put("duurMs",          System.currentTimeMillis() - start);
+        return r;
+    }
+
     @GetMapping
     public List<Poc5Entity> lijst(
             @RequestParam(required = false) String naam,

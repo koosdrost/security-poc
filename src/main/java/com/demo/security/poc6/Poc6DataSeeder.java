@@ -23,7 +23,7 @@ import java.util.Random;
  * Inserts gebeuren in batches van 500 via saveAll() om Hibernate batch inserts te benutten.
  */
 @Component
-@Order(2)  // na H2FunctionRegistrar (Order 1 impliciet via CommandLineRunner volgorde)
+@Order(10)  // na H2FunctionRegistrar (@Order(1))
 public class Poc6DataSeeder implements CommandLineRunner {
 
     private static final Logger log = LoggerFactory.getLogger(Poc6DataSeeder.class);
@@ -59,6 +59,7 @@ public class Poc6DataSeeder implements CommandLineRunner {
         "Contractnummer %d",
         "Projectcode %d",
         "Casusnummer %d",
+
         "Referentiedocument %d"
     };
 
@@ -98,9 +99,7 @@ public class Poc6DataSeeder implements CommandLineRunner {
                 batch.clear();
             }
         }
-        if (!batch.isEmpty()) {
-            repo.saveAll(batch);
-        }
+        if (!batch.isEmpty()) repo.saveAll(batch);
 
         long duur = System.currentTimeMillis() - start;
         log.info("POC 6 seeder: {} records aangemaakt in {} ms ({} ms/record gemiddeld).",

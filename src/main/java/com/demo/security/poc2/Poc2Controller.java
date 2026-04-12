@@ -5,7 +5,10 @@ import com.demo.security.audit.AuditService.Event;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
 
 /**
  * POC 2 — Deterministisch versleuteld (AES-SIV concept)
@@ -60,6 +63,30 @@ public class Poc2Controller {
      * die er de ciphertext van maakt — Hibernate zoekt op die ciphertext.
      * Let op: de zoekterm zelf wordt NIET gelogd (zou plaintext data bevatten).
      */
+    /** GET /v1/poc-2/_perf?operatie=lijst|zoek|enkel&q= */
+    @GetMapping("/_perf")
+    public Map<String, Object> perf(@RequestParam String operatie,
+                                    @RequestParam(required = false, defaultValue = "1") String q) {
+        return gemeten(operatie, switch (operatie) {
+            case "lijst" -> () -> repo.findAll().size();
+            case "zoek"  -> () -> repo.findByVertrouwelijk(q).size();
+            case "enkel" -> () -> repo.findById(Long.parseLong(q)).isPresent() ? 1 : 0;
+            default -> throw new IllegalArgumentException("Onbekende operatie: " + operatie);
+        });
+    }
+
+    private Map<String, Object> gemeten(String operatie, Supplier<Integer> actie) {
+        long start  = System.currentTimeMillis();
+        int  aantal = actie.get();
+        Map<String, Object> r = new LinkedHashMap<>();
+        r.put("poc",             "poc-2 (deterministisch AES-CBC)");
+        r.put("operatie",        operatie);
+        r.put("aantalResultaten", aantal);
+        r.put("totaalRecords",   repo.count());
+        r.put("duurMs",          System.currentTimeMillis() - start);
+        return r;
+    }
+
     @GetMapping
     public List<Poc2Entity> lijst(@RequestParam(required = false) String value) {
         if (value != null) {

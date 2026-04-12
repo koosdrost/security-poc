@@ -8,7 +8,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
 
 /**
  * POC 3 — AES-GCM + HMAC zoekindex
@@ -73,6 +76,30 @@ public class Poc3Controller {
      * HMAC van de zoekterm wordt berekend en vergeleken met de opgeslagen index.
      * Let op: de zoekterm zelf wordt NIET gelogd (zou plaintext data bevatten).
      */
+    /** GET /v1/poc-3/_perf?operatie=lijst|zoek|enkel&q= */
+    @GetMapping("/_perf")
+    public Map<String, Object> perf(@RequestParam String operatie,
+                                    @RequestParam(required = false, defaultValue = "1") String q) {
+        return gemeten(operatie, switch (operatie) {
+            case "lijst" -> () -> repo.findAll().size();
+            case "zoek"  -> () -> repo.findByVertrouwelijkHmac(CryptoUtil.hmacBase64(q, hmacKey)).size();
+            case "enkel" -> () -> repo.findById(Long.parseLong(q)).isPresent() ? 1 : 0;
+            default -> throw new IllegalArgumentException("Onbekende operatie: " + operatie);
+        });
+    }
+
+    private Map<String, Object> gemeten(String operatie, Supplier<Integer> actie) {
+        long start  = System.currentTimeMillis();
+        int  aantal = actie.get();
+        Map<String, Object> r = new LinkedHashMap<>();
+        r.put("poc",             "poc-3 (AES-GCM + HMAC-index)");
+        r.put("operatie",        operatie);
+        r.put("aantalResultaten", aantal);
+        r.put("totaalRecords",   repo.count());
+        r.put("duurMs",          System.currentTimeMillis() - start);
+        return r;
+    }
+
     @GetMapping
     public List<Poc3Entity> lijst(@RequestParam(required = false) String value) {
         if (value != null) {

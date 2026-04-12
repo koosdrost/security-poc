@@ -27,10 +27,7 @@ public class SecurityConfig {
             .headers(headers -> headers
                 .frameOptions(fo -> fo.sameOrigin()))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/h2-console/**").permitAll()
-                .requestMatchers("/oauth2/**", "/.well-known/**", "/login").permitAll()
-                .anyRequest().authenticated())
-            .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
+                .anyRequest().permitAll());
         return http.build();
     }
 }
