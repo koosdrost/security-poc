@@ -1,0 +1,8 @@
+2026-04-12 11:04:33.057 event=DATA_READ principal=anonymousUser resource=poc-6/lijst outcome=SUCCESS details=aantalRecords=10000
+2026-04-12 11:06:09.914 event=DATA_READ principal=anonymousUser resource=poc-6/lijst outcome=SUCCESS details=aantalRecords=10000
+2026-04-12 11:15:21.970 event=DATA_READ principal=anonymousUser resource=poc-6/lijst outcome=SUCCESS details=aantalRecords=10000
+2026-04-12 11:15:46.849 event=DATA_READ principal=anonymousUser resource=poc-6/1 outcome=SUCCESS details=openbaar=record-0
+2026-04-12 11:15:59.149 event=DATA_READ principal=anonymousUser resource=poc-6/3 outcome=SUCCESS details=openbaar=record-2
+2026-04-12 11:16:02.988 event=DATA_READ principal=anonymousUser resource=poc-6/lijst outcome=SUCCESS details=aantalRecords=10000
+2026-04-12 11:16:10.773 event=DATA_READ principal=anonymousUser resource=poc-6/lijst outcome=SUCCESS details=aantalRecords=10000
+2026-04-12 11:16:12.387 event=DATA_READ principal=anonymousUser resource=poc-6/lijst outcome=SUCCESS details=aantalRecords=10000
