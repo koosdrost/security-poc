@@ -1,8 +1,10 @@
-2026-04-12 11:04:33.057 event=DATA_READ principal=anonymousUser resource=poc-6/lijst outcome=SUCCESS details=aantalRecords=10000
-2026-04-12 11:06:09.914 event=DATA_READ principal=anonymousUser resource=poc-6/lijst outcome=SUCCESS details=aantalRecords=10000
-2026-04-12 11:15:21.970 event=DATA_READ principal=anonymousUser resource=poc-6/lijst outcome=SUCCESS details=aantalRecords=10000
-2026-04-12 11:15:46.849 event=DATA_READ principal=anonymousUser resource=poc-6/1 outcome=SUCCESS details=openbaar=record-0
-2026-04-12 11:15:59.149 event=DATA_READ principal=anonymousUser resource=poc-6/3 outcome=SUCCESS details=openbaar=record-2
-2026-04-12 11:16:02.988 event=DATA_READ principal=anonymousUser resource=poc-6/lijst outcome=SUCCESS details=aantalRecords=10000
-2026-04-12 11:16:10.773 event=DATA_READ principal=anonymousUser resource=poc-6/lijst outcome=SUCCESS details=aantalRecords=10000
-2026-04-12 11:16:12.387 event=DATA_READ principal=anonymousUser resource=poc-6/lijst outcome=SUCCESS details=aantalRecords=10000
+2026-05-11 15:36:32.248 event=DATA_READ principal=anonymousUser resource=poc-7/lijst outcome=SUCCESS details=eigenaar=gebruiker-1 aantalResultaten=3
+2026-05-11 15:38:00.403 event=DATA_READ principal=anonymousUser resource=poc-7/lijst outcome=SUCCESS details=eigenaar=null aantalResultaten=6
+2026-05-11 15:38:00.429 event=DATA_READ principal=anonymousUser resource=poc-7/lijst outcome=SUCCESS details=eigenaar=gebruiker-2 aantalResultaten=2
+2026-05-11 15:38:00.554 event=DATA_READ principal=anonymousUser resource=poc-7/1 outcome=SUCCESS details=eigenaar=gebruiker-2
+2026-05-11 16:02:07.086 event=DATA_READ principal=anonymousUser resource=poc-7/lijst outcome=SUCCESS details=eigenaar=null aantalResultaten=0
+2026-05-11 16:11:48.453 event=DATA_READ principal=anonymousUser resource=poc-7/lijst outcome=SUCCESS details=eigenaar=null aantalResultaten=0
+2026-05-11 16:11:46.566 event=DATA_READ principal=anonymousUser resource=poc-7/lijst outcome=SUCCESS details=eigenaar=gebruiker-1 aantalResultaten=3
+2026-05-11 16:11:46.585 event=DATA_READ principal=anonymousUser resource=poc-7/lijst outcome=SUCCESS details=eigenaar=gebruiker-2 aantalResultaten=2
+2026-05-11 16:11:46.668 event=DATA_READ principal=anonymousUser resource=poc-7/1 outcome=FAILURE error=NotFound message=record niet gevonden of geen toegang
+2026-05-11 16:11:46.682 event=DATA_READ principal=anonymousUser resource=poc-7/1 outcome=SUCCESS details=eigenaar=gebruiker-1

@@ -188,6 +188,16 @@ Authorization: Bearer <access_token>
 - **Bestanden:** `poc6/Poc6Entity.java`, `poc6/Poc6Repository.java`, `poc6/Poc6Controller.java`
 - **Hergebruikt:** `AesGcmConverter` (poc1), `H2EncryptFunctions` + `H2FunctionRegistrar` (poc4)
 
+### POC 7 — Row Level Security (RLS)
+- **Concept:** PostgreSQL RLS gesimuleerd in H2 via Hibernate `@Filter`
+- **Status:** done
+- **Datastroom:** `X-Eigenaar-Id header → RlsContext (ThreadLocal) → Hibernate @Filter → WHERE eigenaar_id = :userId`
+- **PostgreSQL-equivalent:** `SET LOCAL app.current_user_id = ?` + `CREATE POLICY ... USING (eigenaar_id = current_setting(...))`
+- **Gotcha:** `EntityManager.find()` bypast Hibernate filters → `findByIdMetFilter()` via JPQL gebruikt in repository
+- **Endpoints:** `POST /v1/poc-7`, `GET /v1/poc-7`, `GET /v1/poc-7/{id}`, `GET /v1/poc-7/_admin` (geen filter, BYPASSRLS equivalent)
+- **Bestanden:** `poc7/RlsContext.java`, `poc7/RlsHandlerInterceptor.java`, `poc7/RlsConfig.java`, `poc7/Poc7Entity.java`, `poc7/Poc7Repository.java`, `poc7/Poc7Service.java`, `poc7/Poc7Controller.java`
+- **Demo:** Seed-data voor 3 gebruikers; zonder header → `[]`; verkeerde user → 404; `/_admin` → alle 6 records
+
 ### KEK-rotatie — Shamir's Secret Sharing
 - **Concept:** 5.1 t/m 5.5 — KEK splitsen in 5 shares (drempel 3) via GF(256) SSS
 - **Status:** done
