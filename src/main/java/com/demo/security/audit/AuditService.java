@@ -25,11 +25,6 @@ public class AuditService {
         DATA_WRITE,
         DATA_READ,
         DATA_SEARCH,
-        DEK_INIT,
-        DEK_ACCESS,
-        DEK_ROTATION,
-        KEK_SPLIT,
-        KEK_RECONSTRUCT,
         FAILURE
     }
 

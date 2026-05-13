@@ -1,18 +1,22 @@
 package com.demo.security.config;
 
-import com.demo.security.poc4.H2EncryptFunctions;
+import com.demo.security.crypto.H2EncryptFunctions;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 /**
- * Registreert H2 custom SQL functies (ENCRYPT_STRING / DECRYPT_STRING) en initialiseert de KEK.
+ * Registreert H2 custom SQL-functies ENCRYPT_STRING / DECRYPT_STRING.
  *
- * Gebruikt @PostConstruct zodat zowel de kek als de SQL-aliassen beschikbaar zijn
- * vóórdat Hibernate zijn eerste statement voorbereidt en vóórdat CommandLineRunner-beans draaien.
+ * H2 laadt {@link com.demo.security.crypto.H2EncryptFunctions} via zijn eigen classloader,
+ * waardoor Spring-injectie niet werkt. De KEK-passphrase wordt daarom via een system property
+ * doorgegeven zodat hij over classloader-grenzen beschikbaar is.
  *
- * Referentie: CLAUDE.md 4.2
+ * Gebruikt @PostConstruct zodat de functies beschikbaar zijn vóórdat Hibernate zijn eerste
+ * statement voorbereidt én vóórdat CommandLineRunner-seeders draaien.
+ *
+ * Productie-equivalent: PostgreSQL pgcrypto functies encrypt_string / decrypt_string.
  */
 @Component
 public class H2FunctionRegistrar {
@@ -34,10 +38,10 @@ public class H2FunctionRegistrar {
         // Registreer de H2 aliases (idempotent via IF NOT EXISTS)
         jdbcTemplate.execute(
             "CREATE ALIAS IF NOT EXISTS ENCRYPT_STRING FOR " +
-            "\"com.demo.security.poc4.H2EncryptFunctions.encryptString\"");
+            "\"com.demo.security.crypto.H2EncryptFunctions.encryptString\"");
 
         jdbcTemplate.execute(
             "CREATE ALIAS IF NOT EXISTS DECRYPT_STRING FOR " +
-            "\"com.demo.security.poc4.H2EncryptFunctions.decryptString\"");
+            "\"com.demo.security.crypto.H2EncryptFunctions.decryptString\"");
     }
 }

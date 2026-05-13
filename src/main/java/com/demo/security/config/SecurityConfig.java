@@ -9,11 +9,14 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
- * Resource Server configuratie: beschermt alle /v1/** endpoints met JWT Bearer tokens.
+ * Resource Server configuratie conform het NL GOV OAuth 2.0 profiel.
  *
- * Referentie: NL GOV Assurance Profile for OAuth 2.0 v1.1.0
- *  - Tokens via Authorization header (Bearer scheme) — transport via query params verboden
- *  - JWT access tokens (RFC 9068)
+ * <p>Tokens worden verwacht als {@code Authorization: Bearer <jwt>} header (RFC 9068).
+ * Transport via query parameters is verboden per NL GOV OAuth profiel.
+ *
+ * <p><strong>POC-afwijking:</strong> {@code anyRequest().permitAll()} — endpoints zijn
+ * in deze demo-omgeving bereikbaar zonder geldig token zodat curl/Postman-tests eenvoudig
+ * zijn. In productie vervangen door {@code .authenticated()} of scope-checks per endpoint.
  */
 @Configuration
 @EnableWebSecurity
@@ -23,7 +26,9 @@ public class SecurityConfig {
     @Order(2)
     public SecurityFilterChain resourceServerFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.ignoringRequestMatchers("/h2-console/**"))
+            // REST API is stateless (Bearer tokens) — CSRF niet van toepassing.
+            // H2-console krijgt sameOrigin frame-toegang.
+            .csrf(csrf -> csrf.disable())
             .headers(headers -> headers
                 .frameOptions(fo -> fo.sameOrigin()))
             .authorizeHttpRequests(auth -> auth
